@@ -16,6 +16,6 @@ connectDB()
    console.log(`Server is running on port ${process.env.PORT}`);
  })
 })
-.catch(error,()=>{
-    console.log("Error While Connecting to Database : ", error);
+.catch((err)=>{
+    console.log("Error While Connecting to Database : ", err);
 })
