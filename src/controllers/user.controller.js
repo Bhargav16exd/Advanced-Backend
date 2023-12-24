@@ -12,14 +12,15 @@ const generateAccessAndRefreshTokens = async(userId) =>{
       const user = await User.findById(userId)
       const accessToken = user.generateAccessToken()
       const refreshToken = user.generateRefreshToken()
-
       user.refreshToken = refreshToken;
       await user.save({ validateBeforeSave:false })
-
+      
       return {accessToken,refreshToken};
 
     } catch (error) {
+
         throw new ApiError(500,"Something went wrong while generating access and refresh token");
+
     }
 
 }
@@ -49,7 +50,6 @@ const registerUser = asyncHandler(async(req,res)=>{
         throw new ApiError(400,"User Already Exists");
     }
     
-    console.log(req.files);
 
     const avatarLocalPath = req.files?.avatar[0]?.path;
     
@@ -60,7 +60,6 @@ const registerUser = asyncHandler(async(req,res)=>{
     }
     
     
-
     if(!avatarLocalPath){
         throw new ApiError(400,"Avatar Is Required")
     }
@@ -69,7 +68,6 @@ const registerUser = asyncHandler(async(req,res)=>{
     const coverImageURL = await uploadOnCloudinary(coverImageLocalPath);
     
    
-    
 
     if(!avatarURL){
        throw new ApiError(400,"Avatar is Required"); 
@@ -110,9 +108,9 @@ const loginUser = asyncHandler(async(req,res)=>{
     // generate refresh and accesss token 
     // send them in cookies
 
-    const {email, userName , password} = req.body;
-
-    if(!email || !userName){
+    const {email,password , userName} = req.body;
+    
+    if(!email && !userName){
         throw new ApiError(400,"username or email is required");
     }
 
@@ -124,13 +122,14 @@ const loginUser = asyncHandler(async(req,res)=>{
         throw new ApiError(400,"Given User not found");
     }
 
-    const isPasswordValid = await user.isPasswordValid(password);
+    const isPasswordCorrect = await user.isPasswordValid(password);
 
-    if(!isPasswordValid){
+
+    if(!isPasswordCorrect){
         throw new ApiError(400,"Incorrect Password");
     }
     
-    const { accessToken ,refreshToken  } = await generateAccessAndRefreshTokens(user._id);
+    const { accessToken ,refreshToken } = await generateAccessAndRefreshTokens(user._id);
 
     const loggedInUser = await User.findById(user._id).select("-refresToken -password");
      
@@ -141,8 +140,8 @@ const loginUser = asyncHandler(async(req,res)=>{
 
     return res.
     status(200)
-    .cookie("access_token" , accessToken , options)
-    .cookie("refresh_token", refreshToken , options)
+    .cookie("accessToken" , accessToken , options)
+    .cookie("refreshToken", refreshToken , options)
     .json(
         new ApiResponse(200 ,{
             user: loggedInUser , accessToken , refreshToken 
