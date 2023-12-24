@@ -2,7 +2,8 @@ import asyncHandler from "../utils/asyncHandler.js";
 import {ApiError} from "../utils/ApiError.js"
 import {User} from "../models/user.model.js";
 import uploadOnCloudinary from "../utils/cloudinary.js";
-import {ApiResponse} from "../utils/ApiResponse.js"
+import {ApiResponse} from "../utils/ApiResponse.js";
+import jwt from "jsonwebtoken";
 
 
 const generateAccessAndRefreshTokens = async(userId) =>{
@@ -14,8 +15,7 @@ const generateAccessAndRefreshTokens = async(userId) =>{
       const refreshToken = user.generateRefreshToken()
       user.refreshToken = refreshToken;
       await user.save({ validateBeforeSave:false })
-      
-      return {accessToken,refreshToken};
+      return { accessToken , refreshToken };
 
     } catch (error) {
 
@@ -178,4 +178,57 @@ const logoutUser = asyncHandler(async (req,res)=>{
 
 })
 
-export {registerUser , loginUser , logoutUser};
+const refreshTokenEndPoint = asyncHandler( async (req,res)=>{
+
+   try {
+     const refreshToken = req.cookies.refreshToken || req.body.refreshToken
+     
+     if(!refreshToken){
+         throw new ApiError(400,"Unauthorized Request");
+     }
+     
+     const incomingRefreshToken = jwt.verify(
+         refreshToken,
+         process.env.REFRESH_TOKEN_SECRET
+     )
+     console.log(incomingRefreshToken);
+     const user = await User.findById(incomingRefreshToken?._id).select(" -password ")
+     console.log(user);
+     if(!user){
+         throw new ApiError(400,"Unauthorized Request");
+     }
+     
+     if( refreshToken != user?.refreshToken){
+         throw new ApiError(400,"Refresh Token expired or used");
+     }
+ 
+     const options ={
+         httpOnly:true,
+         secured:true
+     }
+ 
+     // generating new tokens
+ 
+     const newTokens = await generateAccessAndRefreshTokens(user._id);
+     const newAccessToken = newTokens.accessToken;
+     const newRefreshToken = newTokens.refreshToken;
+
+     return res.
+     status(200)
+     .cookie("accessToken" , newAccessToken , options)
+     .cookie("refreshToken", newRefreshToken , options)
+     .json(
+         new ApiResponse(200 ,{
+             user:user , newAccessToken , newRefreshToken 
+         },
+         "User Login Success"
+         )
+     )
+ 
+   } catch (error) {
+    throw new ApiError(401,error);
+   }
+
+})
+
+export {registerUser , loginUser , logoutUser,refreshTokenEndPoint};
