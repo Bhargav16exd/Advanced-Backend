@@ -36,11 +36,12 @@ const registerUser = asyncHandler(async(req,res)=>{
     // check for user creation
     
     const {fullName , userName, email, password} = req.body;
-
-    if([fullName,userName,email,password].some((field)=> field?.trim() ==="")){
+   
+    if(!fullName || !userName || !email || !password){
        throw new ApiError(400,"All field are required")
     }
-
+    
+   
     const existedUser = await User.findOne({
          $or : [{ userName },{email}]
     })
@@ -50,8 +51,10 @@ const registerUser = asyncHandler(async(req,res)=>{
         throw new ApiError(400,"User Already Exists");
     }
     
+    console.log(req.files)
 
     const avatarLocalPath = req.files?.avatar[0]?.path;
+    
     
     let coverImageLocalPath;
     
@@ -247,7 +250,7 @@ const changeCurrentPassword = asyncHandler(async(req,res)=>{
 
     const user = await User.findById(req.user._id);
 
-    const passwordValidator = await user.isPasswordCorrect(oldPassword);
+    const passwordValidator = await user.isPasswordValid(oldPassword);
 
     if(!passwordValidator){
         throw new ApiError(400,"Invalid Password");
@@ -308,9 +311,9 @@ const updateAccountDetails = asyncHandler(async(req,res)=>{
 })
 
 const updateUserAvatar = asyncHandler(async(req,res)=>{
-
-    const avatarLocalPath = req.files?.avatar[0]?.path
-
+     
+    const avatarLocalPath = req.file?.path
+     
     if(!avatarLocalPath){
         throw new ApiError(400,"Kindly Upload Avatar")
     }
@@ -345,7 +348,7 @@ const updateUserAvatar = asyncHandler(async(req,res)=>{
 
 const updateUserCoverImage = asyncHandler(async(req,res)=>{
 
-    const coverImageLocalPath = req.files?.coverImage[0]?.path
+    const coverImageLocalPath = req.file?.path
 
     if(!coverImageLocalPath){
         throw new ApiError(400,"Kindly Upload Cover Image")
