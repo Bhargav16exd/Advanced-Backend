@@ -1,7 +1,7 @@
 import asyncHandler from "../utils/asyncHandler.js";
 import {ApiError} from "../utils/ApiError.js"
 import {User} from "../models/user.model.js";
-import uploadOnCloudinary from "../utils/cloudinary.js";
+import {uploadOnCloudinary , deleteResource} from "../utils/cloudinary.js";
 import {ApiResponse} from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
 
@@ -52,13 +52,11 @@ const registerUser = asyncHandler(async(req,res)=>{
     }
     
     console.log(req.files)
-
     const avatarLocalPath = req.files?.avatar[0]?.path;
-    
     
     let coverImageLocalPath;
     
-    if(req.files && Array.isArray(req.files.coverImage) && req.files.converImage.length > 0){
+    if(req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0){
          coverImageLocalPath = req.files?.coverImage[0].path;
     }
     
@@ -70,8 +68,6 @@ const registerUser = asyncHandler(async(req,res)=>{
     const avatarURL = await uploadOnCloudinary(avatarLocalPath);
     const coverImageURL = await uploadOnCloudinary(coverImageLocalPath);
     
-   
-
     if(!avatarURL){
        throw new ApiError(400,"Avatar is Required"); 
     }
@@ -82,7 +78,9 @@ const registerUser = asyncHandler(async(req,res)=>{
         userName : userName.toLowerCase(),
         password,
         coverImage:coverImageURL?.url || "",
+        coverImageId:coverImageURL?.public_id || "",
         avatar: avatarURL.url,
+        avatarId:avatarURL.public_id,
     })
 
     const createdUser = await User.findById(user._id).select(
@@ -312,6 +310,8 @@ const updateAccountDetails = asyncHandler(async(req,res)=>{
 
 const updateUserAvatar = asyncHandler(async(req,res)=>{
      
+
+    const oldAvatarId = await User.findById(req.user._id).select("avatarId")
     const avatarLocalPath = req.file?.path
      
     if(!avatarLocalPath){
@@ -319,7 +319,7 @@ const updateUserAvatar = asyncHandler(async(req,res)=>{
     }
 
     const avatarURL  = await uploadOnCloudinary(avatarLocalPath)
-
+   
     if(!avatarURL){
         throw new ApiError(500,"Internal Server Error")
     }
@@ -328,7 +328,8 @@ const updateUserAvatar = asyncHandler(async(req,res)=>{
         req.user?._id,
         {
             $set:{
-                avatar:avatarURL.url
+                avatar:avatarURL.url,
+                avatarId:avatarURL.public_id
             }
         },
         {new:true}
@@ -338,7 +339,10 @@ const updateUserAvatar = asyncHandler(async(req,res)=>{
         throw new ApiError(500, "Internal Server Error")
     }
 
-    return res
+    
+    await deleteResource(oldAvatarId)
+     return res
+     
     .status(200)
     .json(
         new ApiResponse(200,user,"User Avatar Update Success")
@@ -347,6 +351,8 @@ const updateUserAvatar = asyncHandler(async(req,res)=>{
 })
 
 const updateUserCoverImage = asyncHandler(async(req,res)=>{
+
+     const oldCoverImageId = await User.findOne(req.user?._id)
 
     const coverImageLocalPath = req.file?.path
 
@@ -364,7 +370,8 @@ const updateUserCoverImage = asyncHandler(async(req,res)=>{
         req.user?._id,
         {
             $set:{
-                coverImage:coverImageURL.url
+                coverImage:coverImageURL.url,
+                coverImageId:coverImageURL.public_id
             }
         },
         {new:true}
@@ -373,6 +380,8 @@ const updateUserCoverImage = asyncHandler(async(req,res)=>{
     if(!user){
         throw new ApiError(500, "Internal Server Error")
     }
+
+    await deleteResource(oldCoverImageId)
 
     return res
     .status(200)

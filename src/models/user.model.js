@@ -28,8 +28,17 @@ const userSchema = new mongoose.Schema({
         type:String ,
         required:true
     },
+    avatarId:{
+        type:String,
+        required:true,
+        unique:true
+    },
     coverImage:{
         type:String ,
+    },
+    coverImageId:{
+        type:String,
+        unique:true
     },
     watchHistory:[{
         type:mongoose.Schema.Types.ObjectId,

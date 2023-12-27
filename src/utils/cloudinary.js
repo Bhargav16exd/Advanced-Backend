@@ -7,6 +7,7 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARYAPISECRETKEY  
 });
 
+
 const uploadOnCloudinary = async (localFilePath)=>{
 
     try {
@@ -24,4 +25,15 @@ const uploadOnCloudinary = async (localFilePath)=>{
     }
 }
 
-export default uploadOnCloudinary;
+const deleteResource = async (publicId)=>{
+    try {
+        
+        if(!imageURL) return null ;
+        await cloudinary.uploader.destroy(publicId)
+
+    } catch (error) {
+        return null
+    }
+}
+
+export  {uploadOnCloudinary,deleteResource};
