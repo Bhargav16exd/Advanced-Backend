@@ -3,6 +3,8 @@ import { registerUser } from "../controllers/user.controller.js  ";
 import {upload} from "../middlewares/multer.middleware.js"
 import { changeCurrentPassword, 
     getCurrentUser, 
+    getUserChannelProfile, 
+    getWatchHistory, 
     loginUser, logoutUser, 
     refreshTokenEndPoint, 
     updateAccountDetails, 
@@ -28,21 +30,27 @@ router.route("/register").post(
 router.route("/login").post(loginUser);
 router.route("/refreshTokenAPI").post(refreshTokenEndPoint);
 
+
 // secured Routes
 
 router.route("/logout").post(verifyJWT,logoutUser);
 router.route("/changepassAPI").post(verifyJWT,changeCurrentPassword);
 router.route("/getuser").post(verifyJWT,getCurrentUser);
 router.route("/updateUserAPI").post(verifyJWT,updateAccountDetails);
-router.route("/updateUserAvatarAPI").post(
+router.route("/updateUserAvatarAPI").patch(
     verifyJWT,
     upload.single("avatar"),
     updateUserAvatar);
 
-router.route("/updateUserCoverImageAPI").post(
+router.route("/updateUserCoverImageAPI").patch(
     verifyJWT,
     upload.single("coverImage"),
     updateUserCoverImage);
+
+router.route("/c/:userName",verifyJWT,getUserChannelProfile);
+router.route("/history",verifyJWT,getWatchHistory)    
     
+  
+
 
 export default router;
